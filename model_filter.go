@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// ModelFilter exported model filter
 type ModelFilter struct {
 	model             interface{}
 	orderBy           string
@@ -50,7 +51,7 @@ var globalConfig = &Config{
 	FieldsKey:       defaultFieldsKey,
 }
 
-// 设置 url 中的功能性字段
+// Config url 中的功能性字段设置
 type Config struct {
 	LimitKey        string
 	OffsetKey       string
@@ -84,6 +85,7 @@ func (f *ModelFilter) initFromGinContext(c *gin.Context) {
 }
 
 func (f *ModelFilter) initFunctionalFields() {
+	// TODO: 根据 model 加对应缓存，避免每次初始化，benchmark 测试下性能
 	f.allowOrderFields = make(map[string]struct{})
 	f.allowMatchFields = make(map[string]struct{})
 	f.allowSearchFields = make(map[string]struct{})
@@ -124,15 +126,11 @@ func (f *ModelFilter) orderHandler(db *gorm.DB) *gorm.DB {
 	return db
 }
 
-//////////////////////////////////////////////////////////////////////////////////////
-
 func (f *ModelFilter) paginationHandler(db *gorm.DB) *gorm.DB {
 	db = db.Limit(f.limit)
 	db = db.Offset(f.offset)
 	return db
 }
-
-//////////////////////////////////////////////////////////////////////////////////////
 
 func (f *ModelFilter) searchHandler(db *gorm.DB) *gorm.DB {
 	if f.searchValue == "" {
@@ -155,8 +153,6 @@ func (f *ModelFilter) searchHandler(db *gorm.DB) *gorm.DB {
 	return db
 }
 
-//////////////////////////////////////////////////////////////////////////////////////
-
 func (f *ModelFilter) matchHandler(db *gorm.DB) *gorm.DB {
 	for k, v := range f.mapFieldMatch {
 		if _, ok := f.allowMatchFields[k]; ok {
@@ -166,8 +162,6 @@ func (f *ModelFilter) matchHandler(db *gorm.DB) *gorm.DB {
 	return db
 }
 
-//////////////////////////////////////////////////////////////////////////////////////
-
 func (f *ModelFilter) clauseHandler(db *gorm.DB) *gorm.DB {
 	for i := range f.queryList {
 		db = db.Where(f.queryList[i], f.argsList[i]...)
@@ -175,16 +169,12 @@ func (f *ModelFilter) clauseHandler(db *gorm.DB) *gorm.DB {
 	return db
 }
 
-//////////////////////////////////////////////////////////////////////////////////////
-
 func (f *ModelFilter) selectHandler(db *gorm.DB) *gorm.DB {
 	if f.fields != "" {
 		return db.Select(strings.Split(f.fields, ","))
 	}
 	return db
 }
-
-//////////////////////////////////////////////////////////////////////////////////////
 
 func (f *ModelFilter) preloadHandler(db *gorm.DB) *gorm.DB {
 	if f.preloadColumn != "" {
