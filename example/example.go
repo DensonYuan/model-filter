@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/DensonYuan/go-model-filter"
+	"github.com/DensonYuan/model-filter"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

@@ -1,4 +1,4 @@
-module github.com/DensonYuan/go-model-filter
+module github.com/DensonYuan/model-filter
 
 go 1.14
 
