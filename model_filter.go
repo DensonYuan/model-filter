@@ -78,7 +78,7 @@ func (f *ModelFilter) initFromGinContext(c *gin.Context) {
 
 	m := (map[string][]string)(c.Request.URL.Query())
 	for k, v := range m {
-		if !isFunctionalKey(k) && len(v) > 0 {
+		if !isFunctionalKey(k) && len(v) > 0 && v[0] != "" {
 			f.Match(k, v[0])
 		}
 	}
