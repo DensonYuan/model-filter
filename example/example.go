@@ -12,7 +12,7 @@ import (
 var DB *gorm.DB
 
 type User struct {
-	Name  string `json:"name,omitempty" filter:"order;search"`
+	Name  string `json:"name,omitempty" filter:"order;search;match"`
 	Age   int    `json:"age,omitempty" filter:"order;match"`
 	Email string `json:"email,omitempty" filter:"search;match"`
 }
