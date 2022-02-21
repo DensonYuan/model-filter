@@ -98,6 +98,7 @@ func (f *ModelFilter) initFunctionalFields() {
 		if len(tags) > 0 && strings.HasPrefix(tags[0], "name:") {
 			fieldName = tags[0][5:]
 		}
+		// TODO: 增加 inset 功能
 		for _, t := range tags {
 			if t == "order" {
 				f.allowOrderFields[fieldName] = struct{}{}
@@ -156,7 +157,16 @@ func (f *ModelFilter) searchHandler(db *gorm.DB) *gorm.DB {
 func (f *ModelFilter) matchHandler(db *gorm.DB) *gorm.DB {
 	for k, v := range f.mapFieldMatch {
 		if _, ok := f.allowMatchFields[k]; ok {
-			db = db.Where(fmt.Sprintf("`%s` = ?", k), v)
+			var vs []string
+			if s, ook := v.(string); ook {
+				vs = strings.Split(s, ",")
+
+			}
+			if len(vs) > 1 {
+				db = db.Where(fmt.Sprintf("`%s` in (?)", k), vs)
+			} else {
+				db = db.Where(fmt.Sprintf("`%s` = ?", k), v)
+			}
 		}
 	}
 	return db

@@ -42,6 +42,10 @@ GET localhost/api/list/?_fields=name,age
 
 GET localhost/api/list/?name=tom
 
+### 按字段过滤，多值
+
+GET localhost/api/list/?name=tom,jack
+
 
 ###
 
