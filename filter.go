@@ -117,6 +117,9 @@ func (f *ModelFilter) Search(fields string, value string) *ModelFilter {
 
 // Preload 设置预加载条件
 func (f *ModelFilter) Preload(column string, conditions ...interface{}) *ModelFilter {
+	if f.mapPreloads == nil {
+		f.mapPreloads = make(map[string][]interface{})
+	}
 	f.mapPreloads[column] = conditions
 	return f
 }
