@@ -46,6 +46,7 @@ func SetGlobalConfig(config *Config) {
 // Query 获取结果集合
 func (f *ModelFilter) Query(db *gorm.DB) *gorm.DB {
 	db = db.Model(f.model)
+	db = f.joinHandler(db)
 	db = f.orderHandler(db)
 	db = f.searchHandler(db)
 	db = f.matchHandler(db)
@@ -70,24 +71,33 @@ func (f *ModelFilter) Delete(db *gorm.DB) (err error) {
 
 // Select 设置查询字段
 func (f *ModelFilter) Select(fields string) *ModelFilter {
-	f.fields = fields
+	f.selectFields = fields
 	return f
 }
 
 // Where 设置 Where 查询条件
 func (f *ModelFilter) Where(query string, args ...interface{}) *ModelFilter {
-	f.queryList = append(f.queryList, query)
-	f.argsList = append(f.argsList, args)
+	f.queries = append(f.queries, queryPair{Query: query, Args: args})
+	return f
+}
+
+func (f *ModelFilter) Joins(query string, args ...interface{}) *ModelFilter {
+	f.joins = append(f.joins, joinPair{Query: query, Args: args})
 	return f
 }
 
 // Match 设置字段匹配条件
 func (f *ModelFilter) Match(field string, value interface{}) *ModelFilter {
-	if f.mapFieldMatch == nil {
-		f.mapFieldMatch = make(map[string]interface{})
+	if f.matches == nil {
+		f.matches = make(map[string]interface{})
 	}
-	f.mapFieldMatch[field] = value
+	f.matches[field] = value
 	return f
+}
+
+// OrderField 返回排序字段
+func (f *ModelFilter) OrderField() string {
+	return f.orderBy
 }
 
 // Order 设置排序字段
@@ -96,10 +106,20 @@ func (f *ModelFilter) Order(value string) *ModelFilter {
 	return f
 }
 
+// LimitValue 返回分页大小
+func (f *ModelFilter) LimitValue() int {
+	return f.limit
+}
+
 // Limit 设置分页大小
 func (f *ModelFilter) Limit(limit int) *ModelFilter {
 	f.limit = limit
 	return f
+}
+
+// OffsetValue 返回分页偏移量
+func (f *ModelFilter) OffsetValue() int {
+	return f.offset
 }
 
 // Offset 设置分页偏移
@@ -117,9 +137,9 @@ func (f *ModelFilter) Search(fields string, value string) *ModelFilter {
 
 // Preload 设置预加载条件
 func (f *ModelFilter) Preload(column string, conditions ...interface{}) *ModelFilter {
-	if f.mapPreloads == nil {
-		f.mapPreloads = make(map[string][]interface{})
+	if f.preloads == nil {
+		f.preloads = make(map[string][]interface{})
 	}
-	f.mapPreloads[column] = conditions
+	f.preloads[column] = conditions
 	return f
 }
