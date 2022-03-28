@@ -12,18 +12,17 @@ import (
 
 // ModelFilter exported model filter
 type ModelFilter struct {
-	model             interface{}
-	orderBy           string
-	searchFields      string
-	searchValue       string
-	mapFieldMatch     map[string]interface{}
-	queryList         []string
-	argsList          [][]interface{}
-	limit             int
-	offset            int
-	fields            string
-	preloadColumn     string
-	preloadConditions []interface{}
+	model         interface{}
+	orderBy       string
+	searchFields  string
+	searchValue   string
+	mapFieldMatch map[string]interface{}
+	queryList     []string
+	argsList      [][]interface{}
+	limit         int
+	offset        int
+	fields        string
+	mapPreloads   map[string][]interface{}
 
 	// 功能性字段集合 (排序/搜索/匹配)
 	allowOrderFields  map[string]struct{}
@@ -187,8 +186,8 @@ func (f *ModelFilter) selectHandler(db *gorm.DB) *gorm.DB {
 }
 
 func (f *ModelFilter) preloadHandler(db *gorm.DB) *gorm.DB {
-	if f.preloadColumn != "" {
-		return db.Preload(f.preloadColumn, f.preloadConditions...)
+	for column, conditions := range f.mapPreloads {
+		db = db.Preload(column, conditions)
 	}
 	return db
 }
