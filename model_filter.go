@@ -12,22 +12,32 @@ import (
 
 // ModelFilter exported model filter
 type ModelFilter struct {
-	model         interface{}
-	orderBy       string
-	searchFields  string
-	searchValue   string
-	mapFieldMatch map[string]interface{}
-	queryList     []string
-	argsList      [][]interface{}
-	limit         int
-	offset        int
-	fields        string
-	mapPreloads   map[string][]interface{}
+	model        interface{}
+	orderBy      string
+	limit        int
+	offset       int
+	selectFields string
+	searchFields string
+	searchValue  string
+	queries      []queryPair
+	joins        []joinPair
+	matches      map[string]interface{}
+	preloads     map[string][]interface{}
 
 	// 功能性字段集合 (排序/搜索/匹配)
-	allowOrderFields  map[string]struct{}
-	allowMatchFields  map[string]struct{}
-	allowSearchFields map[string]struct{}
+	canOrder  map[string]bool
+	canMatch  map[string]bool
+	canSearch map[string]bool
+}
+
+type queryPair struct {
+	Query interface{}
+	Args  []interface{}
+}
+
+type joinPair struct {
+	Query string
+	Args  []interface{}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -71,9 +81,9 @@ func (f *ModelFilter) initFromGinContext(c *gin.Context) {
 	f.limit, _ = strconv.Atoi(c.DefaultQuery(globalConfig.LimitKey, "-1"))
 	f.offset, _ = strconv.Atoi(c.DefaultQuery(globalConfig.OffsetKey, "0"))
 	f.orderBy = c.DefaultQuery(globalConfig.OrderKey, "")
+	f.selectFields = c.DefaultQuery(globalConfig.FieldsKey, "")
 	f.searchFields = c.DefaultQuery(globalConfig.SearchFieldsKey, "")
 	f.searchValue = c.DefaultQuery(globalConfig.SearchValueKey, "")
-	f.fields = c.DefaultQuery(globalConfig.FieldsKey, "")
 
 	m := (map[string][]string)(c.Request.URL.Query())
 	for k, v := range m {
@@ -85,9 +95,9 @@ func (f *ModelFilter) initFromGinContext(c *gin.Context) {
 
 func (f *ModelFilter) initFunctionalFields() {
 	// TODO: 根据 model 加对应缓存，避免每次初始化，benchmark 测试下性能
-	f.allowOrderFields = make(map[string]struct{})
-	f.allowMatchFields = make(map[string]struct{})
-	f.allowSearchFields = make(map[string]struct{})
+	f.canOrder = make(map[string]bool)
+	f.canMatch = make(map[string]bool)
+	f.canSearch = make(map[string]bool)
 
 	modelType := reflect.TypeOf(f.model)
 	for i := 0; i < modelType.NumField(); i++ {
@@ -100,17 +110,24 @@ func (f *ModelFilter) initFunctionalFields() {
 		// TODO: 增加 inset 功能
 		for _, t := range tags {
 			if t == "order" {
-				f.allowOrderFields[fieldName] = struct{}{}
+				f.canOrder[fieldName] = true
 			} else if t == "search" {
-				f.allowSearchFields[fieldName] = struct{}{}
+				f.canSearch[fieldName] = true
 			} else if t == "match" {
-				f.allowMatchFields[fieldName] = struct{}{}
+				f.canMatch[fieldName] = true
 			}
 		}
 	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
+
+func (f *ModelFilter) joinHandler(db *gorm.DB) *gorm.DB {
+	for _, p := range f.joins {
+		db = db.Joins(p.Query, p.Args...)
+	}
+	return db
+}
 
 func (f *ModelFilter) orderHandler(db *gorm.DB) *gorm.DB {
 	if f.orderBy != "" {
@@ -119,7 +136,7 @@ func (f *ModelFilter) orderHandler(db *gorm.DB) *gorm.DB {
 			obc.Desc = true
 			obc.Column.Name = f.orderBy[1:]
 		}
-		if _, ok := f.allowOrderFields[obc.Column.Name]; ok {
+		if f.canOrder[obc.Column.Name] {
 			db = db.Order(obc)
 		}
 	}
@@ -140,12 +157,12 @@ func (f *ModelFilter) searchHandler(db *gorm.DB) *gorm.DB {
 	format := "`%s` LIKE '%%%s%%'"
 	if f.searchFields != "" {
 		for _, field := range strings.Split(f.searchFields, ",") {
-			if _, ok := f.allowSearchFields[field]; ok && field != "" {
+			if field != "" && f.canSearch[field] {
 				clauses = append(clauses, fmt.Sprintf(format, field, f.searchValue))
 			}
 		}
 	} else {
-		for field := range f.allowSearchFields {
+		for field := range f.canSearch {
 			clauses = append(clauses, fmt.Sprintf(format, field, f.searchValue))
 		}
 	}
@@ -154,8 +171,8 @@ func (f *ModelFilter) searchHandler(db *gorm.DB) *gorm.DB {
 }
 
 func (f *ModelFilter) matchHandler(db *gorm.DB) *gorm.DB {
-	for k, v := range f.mapFieldMatch {
-		if _, ok := f.allowMatchFields[k]; ok {
+	for k, v := range f.matches {
+		if f.canMatch[k] {
 			var vs []string
 			if s, ook := v.(string); ook {
 				vs = strings.Split(s, ",")
@@ -172,21 +189,21 @@ func (f *ModelFilter) matchHandler(db *gorm.DB) *gorm.DB {
 }
 
 func (f *ModelFilter) clauseHandler(db *gorm.DB) *gorm.DB {
-	for i := range f.queryList {
-		db = db.Where(f.queryList[i], f.argsList[i]...)
+	for _, p := range f.queries {
+		db = db.Where(p.Query, p.Args...)
 	}
 	return db
 }
 
 func (f *ModelFilter) selectHandler(db *gorm.DB) *gorm.DB {
-	if f.fields != "" {
-		return db.Select(strings.Split(f.fields, ","))
+	if f.selectFields != "" {
+		return db.Select(strings.Split(f.selectFields, ","))
 	}
 	return db
 }
 
 func (f *ModelFilter) preloadHandler(db *gorm.DB) *gorm.DB {
-	for column, conditions := range f.mapPreloads {
+	for column, conditions := range f.preloads {
 		db = db.Preload(column, conditions)
 	}
 	return db
