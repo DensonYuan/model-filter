@@ -136,10 +136,10 @@ func (f *ModelFilter) Search(fields string, value string) *ModelFilter {
 }
 
 // Preload 设置预加载条件
-func (f *ModelFilter) Preload(column string, conditions ...interface{}) *ModelFilter {
+func (f *ModelFilter) Preload(query string, args ...interface{}) *ModelFilter {
 	if f.preloads == nil {
 		f.preloads = make(map[string][]interface{})
 	}
-	f.preloads[column] = conditions
+	f.preloads[query] = args
 	return f
 }

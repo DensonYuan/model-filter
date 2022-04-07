@@ -203,8 +203,8 @@ func (f *ModelFilter) selectHandler(db *gorm.DB) *gorm.DB {
 }
 
 func (f *ModelFilter) preloadHandler(db *gorm.DB) *gorm.DB {
-	for column, conditions := range f.preloads {
-		db = db.Preload(column, conditions)
+	for query, args := range f.preloads {
+		db = db.Preload(query, args...)
 	}
 	return db
 }
