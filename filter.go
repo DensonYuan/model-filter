@@ -5,7 +5,18 @@ import (
 	"gorm.io/gorm"
 )
 
+// New 创建 ModelFilter, 可通过 gin.Context 初始化
+func New(model interface{}, c ...*gin.Context) *ModelFilter {
+	mf := &ModelFilter{model: model}
+	if len(c) > 0 {
+		mf.initFromGinContext(c[0])
+	}
+	mf.initFunctionalFields()
+	return mf
+}
+
 // InitModelFilter 通过 gin.Context 初始化 ModelFilter
+// Deprecated
 func InitModelFilter(c *gin.Context, model interface{}) *ModelFilter {
 	mf := &ModelFilter{model: model}
 	mf.initFromGinContext(c)
@@ -14,6 +25,7 @@ func InitModelFilter(c *gin.Context, model interface{}) *ModelFilter {
 }
 
 // NewModelFilter 创建 ModelFilter，传入 model 对象
+// Deprecated
 func NewModelFilter(model interface{}) *ModelFilter {
 	mf := &ModelFilter{model: model}
 	mf.initFunctionalFields()
@@ -60,12 +72,6 @@ func (f *ModelFilter) Query(db *gorm.DB) *gorm.DB {
 // Count 获取计数结果
 func (f *ModelFilter) Count(db *gorm.DB) (cnt int64, err error) {
 	err = f.Query(db).Limit(-1).Offset(-1).Count(&cnt).Error
-	return
-}
-
-// Delete 直接删除匹配的记录
-func (f *ModelFilter) Delete(db *gorm.DB) (err error) {
-	err = f.Query(db).Delete(f.model).Error
 	return
 }
 

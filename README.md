@@ -3,13 +3,13 @@
 
 ### 1. 初始化
 
-a. 从 gin.Context 初始化一个 ModelFilter：
+a. 创建 ModelFilter：
 
-`func InitModelFilter(c *gin.Context, model interface{}) *ModelFilter`
+`f := filters.New(User{})`
 
-b. 手动创建 ModelFilter：
+b. 从 gin.Context 初始化一个 ModelFilter：
 
-`func NewModelFilter(model interface{}) *ModelFilter`
+`f := filters.New(User{}, ctx)`
 
 
 ### 2. model 设置 Tag
