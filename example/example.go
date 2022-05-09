@@ -55,7 +55,7 @@ func StartAPIServer() {
 }
 
 func ListHandler(c *gin.Context) {
-	filter := filters.InitModelFilter(c, User{})
+	filter := filters.New(User{}, c)
 
 	// 删除
 	//_ = filter.Limit(1).Delete(DB)
